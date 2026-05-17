@@ -110,21 +110,42 @@ def get_dataloader(cfg, mode = 'train'):
     elif mode == 'test':
 
         # load dataset
-        df = pd.read_csv(cfg.test_csv)
-        filepaths = [{"im": fname} for fname in df['Path'][:50]]
+        df = pd.read_csv(cfg.train_csv)
+        df = df[df['Normal'] == 0]
+        df  = df.sample(n=1)
+        filepaths = [{"im": fname} for fname in df['Path']]
+        filepaths = [{"im": p['im'].replace('D:/Backup/Mestrado/dados/', '/home/jovyan/imgs/').replace('\\', '/')} for p in filepaths]
+        filepaths = [{"im": p['im'].replace('D:/Mestrado/dados/', '/home/jovyan/imgs/').replace('\\', '/')} for p in filepaths]
+        
+        random.shuffle(filepaths)
         
 
-        transforms = Compose(
-            [
-                #LoadImageD(keys=["im"], m, image_only=False),
-                LoadImageD(keys=["im"], image_only=False),
-                EnsureChannelFirstd(keys=["im"]),
-
-                ScaleIntensityD(keys=["im"]),
-                EnsureTypeD(keys=["im"]),
-            ]
-        )
-        ds = PersistentDataset(filepaths, transforms, cache_dir = cfg.cache_dir)
+        deterministic_transforms = Compose(
+    [
+        LoadImaged(keys=["im"], image_only=False, reader=ITKReader(series_name="")),
+        EnsureTyped(keys=["im"]),
+        EnsureChannelFirstd(keys=["im"]),
+        ToDeviced(keys=["im"], device = cfg.device),
+        Orientationd(keys=["im"], axcodes="RAS"),
+        ScaleIntensityRanged(
+        keys=["im"],
+        a_min=-15,
+        a_max=85,
+        b_min=0.0,
+        b_max=1.0,
+        clip=True
+    ),
+        Spacingd(
+            keys=["im"],
+            pixdim=(1.0, 1.0, 1.0),
+            mode="bilinear"
+        ),
+        Resized(keys = ['im'], spatial_size = (160,192,96)),
+        DeleteItemsd(keys=["image_meta_dict"]),  # drop all metadata entirely
+        
+        
+    ])
+        ds = PersistentDataset(filepaths, deterministic_transforms, cache_dir = cfg.cache_dir)
         test_loader = DataLoader(ds, batch_size=1)
 
         return(test_loader)

@@ -229,6 +229,7 @@ def train_model(cfg, device_ids):
 
             # Log images to MLflow
             if (epoch + 1) % 10 == 0:  # control frequency to avoid bloating MLflow
+                print('Logging reconstructions')
                 def tensor_to_mlflow_image(tensor):
                     
                     vol = tensor[0, 0]
@@ -258,7 +259,7 @@ def train_model(cfg, device_ids):
             
 
             if (epoch + 1) % 10 == 0 or (epoch + 1) == cfg.num_epochs:
-                
+                print('Saving checkpoints')
                 
                 torch.save({
                         'epoch': epoch,

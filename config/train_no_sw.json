@@ -31,7 +31,7 @@
   "num_epochs": 100,
   "device": "cuda:0",
   "pretrained": true,
-  "checkpoint_path": "reports/ae_best.pth",
+  "checkpoint_path": "reports/ae_checkpoint_50.pth",
   "freeze_backbone": false,
   "model_as_is": false,
   "best_metric": "AUC",
