@@ -8,12 +8,29 @@ import torch.optim as optim
 
 
 
+def save_model(cfg, model, epoch, val_loss,best_loss):
+    
+    if (epoch + 1) % 50 == 0 or (epoch + 1) == cfg.num_epochs:
+        torch.save({
+            'epoch': epoch + 1,
+            'model': model.state_dict(),
+        }, cfg.save_model_dir + f'/model_{epoch + 1}.pth')
+        print(f'saved model in epoch: {epoch+1}')
 
-def loss_function(x, x_hat, mean, log_var):
-    reproduction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction='sum')
-    KLD      = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
 
-    return reproduction_loss + KLD
+
+    if val_loss < best_loss:
+        
+        best_loss = val_loss
+        torch.save({
+            'epoch': epoch + 1,
+            'model': model.state_dict(),
+        }, cfg.save_model_dir + f'/model_best.pth')
+        print(f'saved best model in epoch: {epoch+1}')
+
+        
+    return(best_loss)
+        
 
 
 

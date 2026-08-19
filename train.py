@@ -26,6 +26,7 @@ from tqdm import tqdm
 from monai.inferers import SlidingWindowInferer
 
 
+
 def log_memory_usage(logger, stage):
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
@@ -120,9 +121,9 @@ def train_model(cfg, device_ids):
         else:
             print('Carregando arquitetura')
             # Adicionado 08/01/2026 - teste de sliding window
-            encoder = Encoder(input_dim=cfg.x_dim, hidden_dim=cfg.hidden_dim, latent_dim=cfg.latent_dim)
-            decoder = Decoder(latent_dim=cfg.latent_dim, hidden_dim = cfg.hidden_dim, output_dim = cfg.x_dim)
-            model = Model(encoder = encoder, decoder = decoder).to(cfg.device)
+            encoder = Encoder()
+            decoder = Decoder()
+            model = Model(Encoder = encoder, Decoder = decoder).to(cfg.device)
 
         # 3. Apply DataParallel if using multiple GPUs
         # if torch.cuda.device_count() > 1:
@@ -132,7 +133,7 @@ def train_model(cfg, device_ids):
 
         BCE_loss = nn.BCELoss()
 
-        optimizer = optim.Adam(model.parameters(), lr=cfg.lr)
+        optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
 
         #tensorboard_path, saved_model_path, log_path = form_results(f'{h}-{w}-{z}', z_dim)
         #writer = SummaryWriter(tensorboard_path)
@@ -187,14 +188,12 @@ def train_model(cfg, device_ids):
 
             mlflow.log_metric("Model BCE Loss", val_loss, step=epoch)        
 
-            #plot_2d_or_3d_image(img, epoch + 1, writer, index=0, frame_dim=-1, tag='image')
-            #plot_2d_or_3d_image(x_hat, epoch + 1, writer, index=0, frame_dim=-1, tag='recon image')
 
             if (epoch + 1) % 50 == 0 or (epoch + 1) == cfg.num_epochs:
                 torch.save({
                     'epoch': epoch + 1,
                     'model': model.state_dict(),
-                }, cfg.save_model_dir + f'/encoder_{epoch + 1}.pth')
+                }, cfg.save_model_dir + f'/model_{epoch + 1}.pth')
 
 
             if val_loss < best_loss:
@@ -202,7 +201,7 @@ def train_model(cfg, device_ids):
                 torch.save({
                     'epoch': epoch + 1,
                     'model': model.state_dict(),
-                }, cfg.save_model_dir + f'/encoder_best.pth')
+                }, cfg.save_model_dir + f'/model_best.pth')
 
                 print(f'saved best model in epoch: {epoch+1}')
         
@@ -224,8 +223,7 @@ def val(cfg, dataloader, model):
         for data in dataloader:
             img = data['im'].to(cfg.device)
             # ==========forward=========
-            #z = encoder(img)
-            #x_hat = decoder(z)
+
             x_hat = model(img)
             
             # ==========compute the loss=========

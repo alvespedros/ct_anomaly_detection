@@ -1,24 +1,12 @@
 import json
 from easydict import EasyDict as edict
-from train_no_sw import train_model
+from vae_training import train
 from test import test_model
 from monai.utils import set_determinism
 import torch
+import os
 
-
-
-# if __name__ == '__main__':
-#     set_determinism(seed=42)
-#     device_ids = [0]
-#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-#     with open("cfg_test_pipeline.json", "r") as f:
-#         cfg = edict(json.load(f))
-
-    
-
-#     train_model(cfg, device_ids)
-
+os.environ["GIT_PYTHON_REFRESH"] = "quiet"
 
 if __name__ == '__main__':
     set_determinism(seed=42)
@@ -30,4 +18,9 @@ if __name__ == '__main__':
     with open("config/pipeline_test.json", "r") as f:
         cfg = edict(json.load(f))
 
-    train_model(cfg,device_ids)
+
+    # VAE constructor needs image shape
+    #im_shape = transforms(train_datadict[0])["im"].shape
+    model, avg_train_losses, test_losses = train(cfg,cfg.img_size, cfg.max_epochs, cfg.latent_size, cfg.learning_rate, cfg.beta)
+
+
