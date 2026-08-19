@@ -27,7 +27,7 @@ if __name__ == '__main__':
     print('Device CUDA: ', device)
     
 
-    with open("config/train_no_sw.json", "r") as f:
+    with open("config/pipeline_test.json", "r") as f:
         cfg = edict(json.load(f))
 
     train_model(cfg,device_ids)
