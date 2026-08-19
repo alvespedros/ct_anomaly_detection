@@ -1,7 +1,6 @@
 import json
 from easydict import EasyDict as edict
-from vae_training import train
-from test import test_model
+from ae_training import train
 from monai.utils import set_determinism
 import torch
 import os
@@ -21,6 +20,6 @@ if __name__ == '__main__':
 
     # VAE constructor needs image shape
     #im_shape = transforms(train_datadict[0])["im"].shape
-    model, avg_train_losses, test_losses = train(cfg,cfg.img_size, cfg.max_epochs, cfg.latent_size, cfg.learning_rate, cfg.beta)
+    model, avg_train_losses, test_losses = train(cfg,cfg.img_size, cfg.num_epochs, cfg.latent_size, cfg.learning_rate)
 
 

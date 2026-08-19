@@ -7,10 +7,9 @@ import torch.optim as optim
 
 
 
-
 def save_model(cfg, model, epoch, val_loss,best_loss):
     
-    if (epoch + 1) % 50 == 0 or (epoch + 1) == cfg.num_epochs:
+    if (epoch + 1) % 5 == 0 or (epoch + 1) == cfg.num_epochs:
         torch.save({
             'epoch': epoch + 1,
             'model': model.state_dict(),

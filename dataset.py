@@ -13,7 +13,6 @@ from monai.transforms import (
     Orientationd,
     DeleteItemsd,
     SqueezeDimd,
-    MaskIntensityd
 )
 import pandas as pd
 from glob import glob
@@ -23,6 +22,7 @@ from monai.data import ITKReader
 from monai.data import DataLoader, PersistentDataset
 from monai.utils import set_determinism
 import random
+
 
 
 
@@ -80,31 +80,28 @@ def get_dataloader(cfg, mode = 'train'):
                 ),
                 Resized(keys = ['im'], spatial_size = (128,128,128)),
                 DeleteItemsd(keys=["image_meta_dict"]),  # drop all metadata entirely
-                
-                #SpatialPadd(
-                #    keys=["im"],
-                #    spatial_size=cfg.roi_size,
-                #    value=0),
+
                 
             ])
 
 
         rand_transforms = Compose([
                 RandSpatialCropd(
-                            keys=["im"],
-                            roi_size=cfg.roi_size,
-                            random_center=True,
-                            random_size=False),
+                    keys=["im"],
+                    roi_size=(1, 128, 128),
+                    random_size=False,
+                ),
+                SqueezeDimd(keys=["im"], dim=1),
 
         ])
 
 
-        #train_transforms = Compose(deterministic_transforms.transforms + rand_transforms.transforms)
-        train_transforms = Compose(deterministic_transforms.transforms)
+        train_transforms = Compose(deterministic_transforms.transforms + rand_transforms.transforms)
+        #train_transforms = Compose(deterministic_transforms.transforms)
         
         train_ds = PersistentDataset(train_datadict, train_transforms, cache_dir = cfg.cache_dir)
         train_loader = DataLoader(train_ds, batch_size=cfg.train_batch_size, num_workers=cfg.num_workers, shuffle=True, prefetch_factor = cfg.prefetch_factor)
-        val_ds = PersistentDataset(val_datadict, deterministic_transforms, cache_dir = cfg.cache_dir)
+        val_ds = PersistentDataset(val_datadict, train_transforms, cache_dir = cfg.cache_dir)
         val_loader = DataLoader(val_ds, batch_size=cfg.val_batch_size, num_workers=cfg.num_workers, shuffle=False,prefetch_factor = cfg.prefetch_factor)
         print('Running test')
 
