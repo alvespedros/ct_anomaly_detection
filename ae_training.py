@@ -6,18 +6,20 @@ from dataset import get_dataloader
 from utils import save_model
 import mlflow
 import torch.nn as nn
+import torchvision
+import os
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-
-
-BCELoss = torch.nn.BCELoss(reduction="sum")
+#BCELoss = torch.nn.BCELoss(reduction="sum")
 
 
 
 def loss_function(recon_x, x):
   
-    bce = nn.MSELoss(reduction = 'mean')
+    #bce = nn.MSELoss(reduction = 'mean')
+    loss = nn.MSELoss()
 
-    return bce(x, recon_x)
+    return loss(x, recon_x)
 
 # def loss_function(recon_x, x, mu, log_var, beta):
 #     bce = BCELoss(recon_x, x)
@@ -52,6 +54,7 @@ def train(cfg,in_shape, max_epochs, latent_size, learning_rate):
 
     # Create optimiser
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 
     avg_train_losses = []
     test_losses = []
@@ -85,12 +88,33 @@ def train(cfg,in_shape, max_epochs, latent_size, learning_rate):
                 inputs = batch_data["im"].to(cfg.device)
                 recon= model(inputs)
                 # sum up batch loss
+
                 test_loss += loss_function(recon, inputs).item()
 
 
 
+            if epoch % 10 == 0:
+                
+                print('Saving reconst')
+
+                local_filename = f"/home/jovyan/work/reports/ae_training/reconstructions/recons_{epoch}.png"
+                
+                # Salva o tensor diretamente no disco (garante formato 4D [B, C, H, W] ou 3D [C, H, W])
+                torchvision.utils.save_image(recon[0:1], local_filename)
+                
+                # Faz o log no MLflow
+                mlflow.log_artifact(local_filename, artifact_path="reconstructions")
+                
+                # Limpeza
+                os.remove(local_filename)
+
+
+
         val_loss = test_loss / len(val_loader.dataset)
+        scheduler.step(val_loss)
         
+        current_lr = optimizer.param_groups[0]["lr"]
+        mlflow.log_metric("learning_rate", current_lr, step=epoch)
         
         best_loss = save_model(cfg, model, epoch, val_loss,best_loss)
 
