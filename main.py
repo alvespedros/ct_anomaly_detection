@@ -14,7 +14,7 @@ if __name__ == '__main__':
     print('Device CUDA: ', device)
     
 
-    with open("config/pipeline_test.json", "r") as f:
+    with open("config/ae_config.json", "r") as f:
         cfg = edict(json.load(f))
 
 
