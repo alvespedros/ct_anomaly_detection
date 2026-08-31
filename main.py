@@ -1,6 +1,6 @@
 import json
 from easydict import EasyDict as edict
-from ae_training import train
+from vae_training import train
 from monai.utils import set_determinism
 import torch
 import os
@@ -14,12 +14,12 @@ if __name__ == '__main__':
     print('Device CUDA: ', device)
     
 
-    with open("config/ae_config.json", "r") as f:
+    with open("config/vae_config.json", "r") as f:
         cfg = edict(json.load(f))
 
 
     # VAE constructor needs image shape
     #im_shape = transforms(train_datadict[0])["im"].shape
-    model, avg_train_losses, test_losses = train(cfg,cfg.img_size, cfg.num_epochs, cfg.latent_size, cfg.learning_rate)
+    model, avg_train_losses, test_losses = train(cfg)
 
 
