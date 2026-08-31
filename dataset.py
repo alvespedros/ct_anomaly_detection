@@ -11,7 +11,8 @@ from monai.transforms import (
     Spacingd,
     ToDeviced,
     Orientationd,
-    DeleteItemsd
+    DeleteItemsd,
+    SqueezeDimd,
 )
 import pandas as pd
 from glob import glob
@@ -21,6 +22,7 @@ from monai.data import ITKReader
 from monai.data import DataLoader, PersistentDataset
 from monai.utils import set_determinism
 import random
+
 
 
 
@@ -39,7 +41,7 @@ def get_dataloader(cfg, mode = 'train'):
         filepaths = [{"im": fname} for fname in df['Path'][:cfg.n_images]]
         filepaths = [{"im": p['im'].replace('D:/Backup/Mestrado/dados/', '/home/jovyan/imgs/').replace('\\', '/')} for p in filepaths]
         #filepaths = [{"im": p['im'].replace('D:/Backup/Mestrado/dados/', '/home/jovyan/imgs/')} for p in filepaths]
-        filepaths = [{"im": p['im'].replace('D:/Mestrado/dados/', '/home/jovyan/imgs/').replace('\\', '/')} for p in filepaths]
+        #filepaths = [{"im": p['im'].replace('D:/Mestrado/dados/', '/home/jovyan/imgs/').replace('\\', '/')} for p in filepaths]
         #filepaths = [{"im": p['im'].replace('D:/Mestrado/dados/', '/home/jovyan/imgs/')} for p in filepaths]
         random.shuffle(filepaths)
         
@@ -76,34 +78,32 @@ def get_dataloader(cfg, mode = 'train'):
                     pixdim=(1.0, 1.0, 1.0),
                     mode="bilinear"
                 ),
-                Resized(keys = ['im'], spatial_size = (160,192,96)),
+                Resized(keys = ['im'], spatial_size = (128,128,128)),
                 DeleteItemsd(keys=["image_meta_dict"]),  # drop all metadata entirely
-                
-                #SpatialPadd(
-                #    keys=["im"],
-                #    spatial_size=cfg.roi_size,
-                #    value=0),
+
                 
             ])
 
+
         rand_transforms = Compose([
                 RandSpatialCropd(
-                            keys=["im"],
-                            roi_size=cfg.roi_size,
-                            random_center=True,
-                            random_size=False),
+                    keys=["im"],
+                    roi_size=(1, 128, 128),
+                    random_size=False,
+                ),
+                SqueezeDimd(keys=["im"], dim=1),
 
         ])
 
 
-        #train_transforms = Compose(deterministic_transforms.transforms + rand_transforms.transforms)
-        train_transforms = Compose(deterministic_transforms.transforms)
+        train_transforms = Compose(deterministic_transforms.transforms + rand_transforms.transforms)
+        #train_transforms = Compose(deterministic_transforms.transforms)
         
         train_ds = PersistentDataset(train_datadict, train_transforms, cache_dir = cfg.cache_dir)
         train_loader = DataLoader(train_ds, batch_size=cfg.train_batch_size, num_workers=cfg.num_workers, shuffle=True, prefetch_factor = cfg.prefetch_factor)
-        val_ds = PersistentDataset(val_datadict, deterministic_transforms, cache_dir = cfg.cache_dir)
+        val_ds = PersistentDataset(val_datadict, train_transforms, cache_dir = cfg.cache_dir)
         val_loader = DataLoader(val_ds, batch_size=cfg.val_batch_size, num_workers=cfg.num_workers, shuffle=False,prefetch_factor = cfg.prefetch_factor)
-        
+        print('Running test')
 
         return(train_loader, val_loader)
     
