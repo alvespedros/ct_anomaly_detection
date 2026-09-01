@@ -10,7 +10,7 @@
   "learning_rate": 0.001,
   "weight_decay": 0.000001,
   "optimal_lr": false,
-  "num_epochs": 20,
+  "num_epochs": 100,
   "warmup_epochs" : 10, 
   "device": "cuda:0",
   "pretrained": false,
@@ -32,5 +32,5 @@
   "mlflow_tracking_uri": "file:///home/jovyan/work/reports/mlruns",
   "mlflow_experiment_name": "vae_training_testing",
   "mlflow_run_name": "testining implementation",
-  "run_number": "1"
+  "run_number": "2"
 }
