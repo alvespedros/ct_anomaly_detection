@@ -7,6 +7,7 @@ import mlflow
 import torch.nn as nn
 import os 
 import torchvision
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 torch.cuda.empty_cache()
@@ -83,7 +84,7 @@ def train(cfg):
 
     # Create optimiser
     optimizer = torch.optim.Adam(model.parameters(), cfg.learning_rate)
-
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
     avg_train_losses = []
     test_losses = []
     best_loss = 2000
@@ -157,13 +158,15 @@ def train(cfg):
                 os.remove(local_filename)
 
         val_loss = test_loss / len(val_loader.dataset)
+        scheduler.step(val_loss)
         val_recons_loss = test_recons_loss / len(val_loader.dataset)
         val_kl_loss = test_kl_loss / len(val_loader.dataset)
         
         
         best_loss = save_model(cfg, model, epoch, val_loss,best_loss)
 
-        
+        current_lr = optimizer.param_groups[0]["lr"]
+        mlflow.log_metric("learning_rate", current_lr, step=epoch)
         mlflow.log_metric("Val average loss", val_loss , step=epoch)
         mlflow.log_metric("Val average recons loss", val_recons_loss , step=epoch)
         mlflow.log_metric("Val average KL loss", val_kl_loss , step=epoch)
