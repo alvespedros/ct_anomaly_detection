@@ -39,16 +39,16 @@ torch.cuda.reset_peak_memory_stats()
 
 
 def loss_function(recon_x, x, mu, logvar, beta=1e-4, epoch=0, total_epochs=100):
-    recon_loss = nn.functional.mse_loss(recon_x, x, reduction='sum')
+    recon_loss = nn.functional.mse_loss(recon_x, x, reduction='sum')/(recon_x.size(0))
     
-    logvar_clamped = torch.clamp(logvar, min=-25.0, max=5.0)
+    logvar_clamped = torch.clamp(logvar, min=-10.0, max=5.0)
     mu_clamped = torch.clamp(mu, min=-10.0, max=10.0)
     
     kl_loss = -0.5 * torch.sum(
         1 + logvar_clamped - mu_clamped.pow(2) - logvar_clamped.exp(), 
         dim=-1
     )
-    #kl_loss = torch.mean(kl_loss)
+    kl_loss = torch.mean(kl_loss)
     
     # Linear annealing: start at 0, ramp to final value over N epochs
    # beta = kl_weight*min(0.01, (epoch / total_epochs) * 0.01)
@@ -63,9 +63,9 @@ def train(cfg):
     mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
     mlflow.set_experiment(cfg.mlflow_experiment_name)
 
-    with mlflow.start_run(run_name=cfg.mlflow_run_name):
-        mlflow.set_tag("model_name", cfg.backbone)
-        mlflow.log_params(vars(cfg))
+    #with mlflow.start_run(run_name=cfg.mlflow_run_name):
+    mlflow.set_tag("model_name", cfg.backbone)
+    mlflow.log_params(vars(cfg))
 
     model = VarAutoEncoder(
         spatial_dims=2,  # 2 for 2D slice input (Conv2d / BatchNorm2d)
@@ -87,7 +87,7 @@ def train(cfg):
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
     avg_train_losses = []
     test_losses = []
-    best_loss = 2000
+    best_loss = 8000
     min_beta = 1e-2
 
     
@@ -118,7 +118,8 @@ def train(cfg):
 
 
 
-        
+        print("Reconstruction loss: ", epoch_recons_loss / len(train_loader.dataset))
+        print("KL Divergence : ", epoch_kl_loss / len(train_loader.dataset) ) 
         mlflow.log_metric("Train average loss", epoch_loss / len(train_loader.dataset), step=epoch)
         mlflow.log_metric("Train reconstruction loss", epoch_recons_loss / len(train_loader.dataset), step=epoch)
         mlflow.log_metric("Train KL loss", epoch_kl_loss / len(train_loader.dataset), step=epoch)
@@ -172,7 +173,10 @@ def train(cfg):
         mlflow.log_metric("Val average KL loss", val_kl_loss , step=epoch)
         test_losses.append(val_loss)
 
+
+        
         t.set_description(  # noqa: B038
             f"epoch {epoch + 1}, average train loss: " f"{avg_train_losses[-1]:.4f}, test loss: {test_losses[-1]:.4f}"
         )
+        #mlflow.end_run()
     return model, avg_train_losses, test_losses
